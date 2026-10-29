@@ -405,6 +405,9 @@ function List:setup(opts)
 
   folds.reset()
   folds.open(group.filename)
+  if opts.state then
+    folds.folded = vim.deepcopy(opts.state.folded)
+  end
 
   self:update(self.groups)
   local _, location_line = find_location_position(self.items, location)
@@ -419,9 +422,13 @@ function List:setup(opts)
     })
   end
 
-  vim.api.nvim_win_set_cursor(self.winnr, { location_line, 1 })
-  vim.schedule(function()
-    vim.cmd('norm! zz')
+  vim.api.nvim_win_call(self.winnr, function()
+    if opts.state then
+      vim.fn.winrestview(opts.state.view)
+    else
+      vim.api.nvim_win_set_cursor(self.winnr, { location_line, 1 })
+      vim.cmd('norm! zz')
+    end
   end)
 end
 
@@ -452,6 +459,7 @@ function List:destroy()
 end
 
 function List:render(groups)
+  self.items = {}
   local renderer = Renderer:new(self.bufnr)
   local icons = config.options.folds
 

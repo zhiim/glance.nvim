@@ -8,6 +8,7 @@ local glance = {}
 Glance.__index = Glance
 local initialized = false
 local last_session = nil
+local request_id = 0
 local layout_ns = vim.api.nvim_create_namespace('GlanceLayout')
 
 ---@param opts? GlanceOpts
@@ -279,8 +280,16 @@ end
 local function open(opts)
   local parent_bufnr = vim.api.nvim_get_current_buf()
   local parent_winnr = vim.api.nvim_get_current_win()
+  local current_glance = glance
+  request_id = request_id + 1
+  local current_request = request_id
 
   lsp.request(opts.method, parent_bufnr, function(results, ctx)
+    -- Ignore replies from a query superseded by another query, back, or close.
+    if current_request ~= request_id or glance ~= current_glance then
+      return
+    end
+
     if vim.tbl_isempty(results) then
       return utils.info(('No %s found'):format(lsp.methods[opts.method].label))
     end
@@ -288,12 +297,15 @@ local function open(opts)
     local client = vim.lsp.get_client_by_id(ctx.client_id)
 
     if is_open() then
-      glance.list:setup({
+      table.insert(glance.history, glance:snapshot())
+      glance.session = {
         results = results,
         position_params = ctx.params,
         method = opts.method,
         offset_encoding = client.offset_encoding,
-      })
+      }
+      last_session = glance.session
+      glance.list:setup(glance.session)
       glance.preview:clear_hl()
       glance:update_preview(glance.list:get_current_item())
       vim.api.nvim_set_current_win(glance.list.winnr)
@@ -332,7 +344,19 @@ end
 
 ---@class GlanceActions
 Glance.actions = {
+  back = function()
+    if not is_open() or #glance.history == 0 then
+      return
+    end
+
+    request_id = request_id + 1
+    glance:restore(table.remove(glance.history))
+  end,
   close = function()
+    request_id = request_id + 1
+    if vim.tbl_isempty(glance) then
+      return
+    end
     glance:close()
     glance:destroy()
   end,
@@ -509,10 +533,42 @@ function Glance:create(opts)
     parent_winnr = opts.winnr,
     parent_bufnr = opts.bufnr,
     row = row,
+    session = last_session,
+    history = {},
   }
 
   setmetatable(scope, self)
   return scope
+end
+
+function Glance:snapshot()
+  local function view(winnr)
+    return vim.api.nvim_win_call(winnr, vim.fn.winsaveview)
+  end
+
+  return {
+    session = self.session,
+    list = {
+      folded = vim.deepcopy(require('glance.folds').folded),
+      view = view(self.list.winnr),
+    },
+    preview_location = self.preview.current_location,
+    preview_view = view(self.preview.winnr),
+    focus = vim.api.nvim_get_current_win() == self.preview.winnr and 'preview'
+      or 'list',
+  }
+end
+
+function Glance:restore(state)
+  self.session = state.session
+  last_session = self.session
+  self.list:setup(vim.tbl_extend('force', self.session, { state = state.list }))
+  self.preview:clear_hl()
+  self:update_preview(state.preview_location)
+  vim.api.nvim_win_call(self.preview.winnr, function()
+    vim.fn.winrestview(state.preview_view)
+  end)
+  vim.api.nvim_set_current_win(self[state.focus].winnr)
 end
 
 function Glance:on_resize()

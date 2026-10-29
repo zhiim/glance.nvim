@@ -11,6 +11,7 @@ A pretty preview window for Neovim that provides VSCode-like peek preview functi
   - Type definitions
   - References
   - Implementations
+- Nested query history: press `b` to return to the previous Glance view
 - Full editing capabilities within the preview window
 - Smart UI highlighting that adapts to your colorscheme
 - Intuitive UI
@@ -76,6 +77,20 @@ nnoremap gM <CMD>Glance implementations<CR>
 
 </details>
 
+### Nested navigation
+
+When a Glance preview contains another function call, run `:Glance definitions`
+again to inspect it. Press `b` in either the list or preview to return to the
+previous query. Repeat `b` to walk back through multiple nested queries.
+
+Going back restores the result list, folds, preview cursor and scroll position,
+and the previously focused pane without another LSP request. Empty results do not
+add history. At the first query, `b` does nothing. Closing Glance clears the
+navigation history; `:Glance resume` reopens the last displayed query.
+
+The default binding can be changed or disabled independently in
+`mappings.list` and `mappings.preview` using `actions.back` or `false`.
+
 ## Configuration
 
 <details>
@@ -127,6 +142,7 @@ glance.setup({
 
   mappings = {
     list = {
+      ['b'] = actions.back, -- Return to the previous Glance view
       ['j'] = actions.next, -- Next item
       ['k'] = actions.previous, -- Previous item
       ['<Down>'] = actions.next,
@@ -151,6 +167,7 @@ glance.setup({
     },
 
     preview = {
+      ['b'] = actions.back, -- Return to the previous Glance view
       ['Q'] = actions.close,
       ['<Tab>'] = actions.next_location, -- Next location (skips groups, cycles)
       ['<S-Tab>'] = actions.previous_location, -- Previous location (skips groups, cycles)
@@ -188,6 +205,7 @@ glance.setup({
 - `:Glance definitions` Show definitions of the word under the cursor from the LSP server
 - `:Glance type_definitions` Show type definitions of the word under the cursor from the LSP server
 - `:Glance implementations` Show implementations of the word under the cursor from the LSP server
+- `:Glance back` Return to the previous query in the current session
 - `:Glance resume` Resume previously closed session
 </details>
 
@@ -225,6 +243,9 @@ actions.enter_win(win)
 #### Navigation
 
 ```lua
+---Returns to the previous Glance view (default: b)
+actions.back
+
 ---Moves cursor to the next item in the list
 actions.next
 
