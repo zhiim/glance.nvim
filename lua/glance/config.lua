@@ -89,6 +89,7 @@ function config.setup(user_config, actions)
     },
     mappings = {
       list = {
+        ['b'] = actions.back,
         ['j'] = actions.next,
         ['k'] = actions.previous,
         ['<Down>'] = actions.next,
@@ -111,6 +112,7 @@ function config.setup(user_config, actions)
         ['<C-q>'] = actions.quickfix,
       },
       preview = {
+        ['b'] = actions.back,
         ['Q'] = actions.close,
         ['<Tab>'] = actions.next_location,
         ['<S-Tab>'] = actions.previous_location,

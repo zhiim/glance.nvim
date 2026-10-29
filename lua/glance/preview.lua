@@ -234,7 +234,10 @@ function Preview:update(item, group)
     return
   end
 
-  if vim.deep_equal(self.current_location, item) then
+  if
+    vim.deep_equal(self.current_location, item)
+    and vim.tbl_contains(touched_buffers, item.bufnr)
+  then
     return
   end
 

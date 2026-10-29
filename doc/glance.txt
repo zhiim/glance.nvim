@@ -87,6 +87,19 @@ Using Vimscript ~
 <
 
 
+NESTED NAVIGATION ~
+
+Run :Glance definitions from a preview to inspect another function. Press b in
+ either pane to return to the previous query. Repeated b walks back through
+nested queries, restoring the list, folds, preview cursor, scroll position and
+focus without another LSP request. At the first query, b does nothing. Empty
+results do not add history. Closing Glance clears history; :Glance resume
+reopens the last displayed query.
+
+Change or disable b in mappings.list and mappings.preview using actions.back
+or false.
+
+
 CONFIGURATION                                    *glance-glance-configuration*
 
 Default configuration ~
@@ -138,6 +151,7 @@ The following is the default configuration:
     
       mappings = {
         list = {
+          ['b'] = actions.back, -- Return to the previous Glance view
           ['j'] = actions.next, -- Next item
           ['k'] = actions.previous, -- Previous item
           ['<Down>'] = actions.next,
@@ -162,6 +176,7 @@ The following is the default configuration:
         },
     
         preview = {
+          ['b'] = actions.back, -- Return to the previous Glance view
           ['Q'] = actions.close,
           ['<Tab>'] = actions.next_location, -- Next location (skips groups, cycles)
           ['<S-Tab>'] = actions.previous_location, -- Previous location (skips groups, cycles)
@@ -196,6 +211,7 @@ Commands ~
 - `:Glance definitions` Show definitions of the word under the cursor from the LSP server
 - `:Glance type_definitions` Show type definitions of the word under the cursor from the LSP server
 - `:Glance implementations` Show implementations of the word under the cursor from the LSP server
+- `:Glance back` Return to the previous query in the current session
 - `:Glance resume` Resume previously closed session
 
 API ~
@@ -235,6 +251,9 @@ WINDOW CONTROL
 NAVIGATION
 
 >lua
+    ---Returns to the previous Glance view (default: b)
+    actions.back
+
     ---Moves cursor to the next item in the list
     actions.next
     
